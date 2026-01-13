@@ -952,8 +952,8 @@ def driver_locations():
     """Page showing all drivers on a map with real-time locations"""
     drivers = Driver.query.filter_by(is_approved=True).all()
 
-    # Count online drivers
-    online_count = Driver.query.filter_by(is_approved=True, is_online=True).count()
+    # Count online drivers (using is_truly_online which checks heartbeat timeout)
+    online_count = sum(1 for d in drivers if d.is_truly_online)
     total_count = len(drivers)
 
     return render_template('fleet/driver_locations.html',
@@ -971,16 +971,24 @@ def api_driver_locations():
 
     drivers_data = []
     for driver in drivers:
+        # Convert UTC to Egypt time (UTC+2) for display
+        location_updated_egypt = None
+        if driver.current_location_updated_at:
+            from datetime import timedelta
+            egypt_time = driver.current_location_updated_at + timedelta(hours=2)
+            location_updated_egypt = egypt_time.strftime('%H:%M:%S')
+
         driver_info = {
             'id': driver.id,
             'name': driver.name,
             'phone': driver.phone,
             'driver_number': driver.driver_number,
-            'is_online': driver.is_online,
+            'is_online': driver.is_truly_online,  # Use timeout-based check
             'has_location': driver.current_latitude is not None,
             'latitude': driver.current_latitude,
             'longitude': driver.current_longitude,
             'location_updated_at': driver.current_location_updated_at.isoformat() if driver.current_location_updated_at else None,
+            'location_updated_at_egypt': location_updated_egypt,  # Egyptian time
             'has_recent_location': driver.has_recent_location,
             'photo_url': f"/static/uploads/drivers/{driver.photo_filename}" if driver.photo_filename else None,
             'current_mission': None
@@ -1005,7 +1013,7 @@ def api_driver_locations():
     return jsonify({
         'success': True,
         'drivers': drivers_data,
-        'online_count': sum(1 for d in drivers_data if d['is_online']),
+        'online_count': sum(1 for d in drivers if d.is_truly_online),
         'total_count': len(drivers_data)
     })
 

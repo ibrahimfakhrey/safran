@@ -997,9 +997,20 @@ class Driver(db.Model):
         return 'مفعّل' if self.is_verified else 'غير مفعّل'
 
     @property
+    def is_truly_online(self):
+        """Check if driver is actually online (has heartbeat within last 2 minutes)"""
+        if not self.is_online:
+            return False
+        if not self.last_seen_at:
+            return False
+        # Consider offline if no heartbeat for 2 minutes
+        age = (datetime.utcnow() - self.last_seen_at).total_seconds()
+        return age < 120  # 2 minutes timeout
+
+    @property
     def online_status_arabic(self):
-        """Get online status in Arabic"""
-        return 'متصل' if self.is_online else 'غير متصل'
+        """Get online status in Arabic (based on actual heartbeat)"""
+        return 'متصل' if self.is_truly_online else 'غير متصل'
 
     @property
     def location_age_seconds(self):

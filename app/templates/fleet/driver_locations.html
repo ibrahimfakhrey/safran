@@ -358,7 +358,7 @@
     </h3>
     <div class="drivers-grid" id="drivers-list">
         {% for driver in drivers %}
-        <div class="driver-card {% if driver.is_online %}online{% endif %}"
+        <div class="driver-card {% if driver.is_truly_online %}online{% endif %}"
              data-driver-id="{{ driver.id }}"
              data-lat="{{ driver.current_latitude or '' }}"
              data-lng="{{ driver.current_longitude or '' }}"
@@ -375,7 +375,7 @@
                     <h4>{{ driver.name }}</h4>
                     <p>{{ driver.driver_number or 'غير مفعّل' }}</p>
                 </div>
-                <div class="status-indicator {% if driver.is_online %}online{% else %}offline{% endif %}">
+                <div class="status-indicator {% if driver.is_truly_online %}online{% else %}offline{% endif %}">
                     <span class="status-dot"></span>
                     {{ driver.online_status_arabic }}
                 </div>
@@ -385,9 +385,9 @@
                 {% if driver.current_latitude and driver.current_longitude %}
                 <span><i class="fas fa-map-pin"></i> موقع متاح</span>
                 {% if driver.current_location_updated_at %}
-                <span class="last-update" style="grid-column: span 2;">
+                <span class="last-update" style="grid-column: span 2;" data-utc-time="{{ driver.current_location_updated_at.isoformat() }}">
                     <i class="fas fa-clock"></i>
-                    آخر تحديث: {{ driver.current_location_updated_at.strftime('%H:%M:%S') }}
+                    آخر تحديث: <span class="egypt-time"></span>
                 </span>
                 {% endif %}
                 {% else %}
@@ -550,6 +550,12 @@
                         const statusIndicator = card.querySelector('.status-indicator');
                         statusIndicator.className = 'status-indicator ' + (driver.is_online ? 'online' : 'offline');
                         statusIndicator.innerHTML = `<span class="status-dot"></span> ${driver.is_online ? 'متصل' : 'غير متصل'}`;
+
+                        // Update last update time with Egypt time
+                        const lastUpdateSpan = card.querySelector('.last-update .egypt-time');
+                        if (lastUpdateSpan && driver.location_updated_at_egypt) {
+                            lastUpdateSpan.textContent = driver.location_updated_at_egypt;
+                        }
                     }
 
                     // Update or create marker
@@ -598,9 +604,30 @@
         indicator.classList.remove('updating');
     }
 
+    // Convert UTC time to Egypt time (UTC+2)
+    function convertToEgyptTime(utcTimeStr) {
+        if (!utcTimeStr) return '';
+        const utcDate = new Date(utcTimeStr + 'Z');  // Add Z to indicate UTC
+        // Add 2 hours for Egypt timezone
+        const egyptDate = new Date(utcDate.getTime() + (2 * 60 * 60 * 1000));
+        return egyptDate.toTimeString().split(' ')[0];  // HH:MM:SS format
+    }
+
+    // Initialize Egypt times on page load
+    function initializeEgyptTimes() {
+        document.querySelectorAll('[data-utc-time]').forEach(element => {
+            const utcTime = element.dataset.utcTime;
+            const egyptTimeSpan = element.querySelector('.egypt-time');
+            if (egyptTimeSpan && utcTime) {
+                egyptTimeSpan.textContent = convertToEgyptTime(utcTime);
+            }
+        });
+    }
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
         initializeMarkers();
+        initializeEgyptTimes();
 
         // Auto-refresh every 30 seconds
         setInterval(refreshLocations, 30000);
