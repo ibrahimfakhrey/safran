@@ -37,6 +37,21 @@ def admin_required(f):
     return decorated_function
 
 
+def fleet_access_required(f):
+    """Decorator to require fleet access (admin OR fleet_manager)"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('يجب تسجيل الدخول للوصول إلى هذه الصفحة', 'error')
+            return redirect(url_for('fleet.fleet_login'))
+        if not (current_user.is_admin or current_user.is_fleet_manager):
+            flash('ليس لديك صلاحية الوصول إلى إدارة الأسطول', 'error')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and \
@@ -62,7 +77,7 @@ def save_driver_file(file, driver_id, file_type='photo'):
 
 @fleet.route('/')
 @login_required
-@admin_required
+@fleet_access_required
 def dashboard():
     """Fleet management dashboard with statistics"""
     # Get statistics
@@ -104,7 +119,7 @@ def dashboard():
 
 @fleet.route('/cars')
 @login_required
-@admin_required
+@fleet_access_required
 def cars_list():
     """List all fleet cars"""
     status_filter = request.args.get('status', '')
@@ -120,7 +135,7 @@ def cars_list():
 
 @fleet.route('/cars/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def add_car():
     """Add new fleet car"""
     if request.method == 'POST':
@@ -149,7 +164,7 @@ def add_car():
 
 @fleet.route('/cars/<int:id>')
 @login_required
-@admin_required
+@fleet_access_required
 def car_details(id):
     """View fleet car details and mission history"""
     car = FleetCar.query.get_or_404(id)
@@ -160,7 +175,7 @@ def car_details(id):
 
 @fleet.route('/cars/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def edit_car(id):
     """Edit fleet car"""
     car = FleetCar.query.get_or_404(id)
@@ -188,7 +203,7 @@ def edit_car(id):
 
 @fleet.route('/cars/<int:id>/delete', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def delete_car(id):
     """Delete fleet car"""
     car = FleetCar.query.get_or_404(id)
@@ -213,7 +228,7 @@ def delete_car(id):
 
 @fleet.route('/drivers')
 @login_required
-@admin_required
+@fleet_access_required
 def drivers_list():
     """List all drivers"""
     approval_filter = request.args.get('approved', '')
@@ -231,7 +246,7 @@ def drivers_list():
 
 @fleet.route('/drivers/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def add_driver():
     """Add new driver"""
     if request.method == 'POST':
@@ -273,7 +288,7 @@ def add_driver():
 
 @fleet.route('/drivers/<int:id>')
 @login_required
-@admin_required
+@fleet_access_required
 def driver_details(id):
     """View driver details and mission history"""
     driver = Driver.query.get_or_404(id)
@@ -284,7 +299,7 @@ def driver_details(id):
 
 @fleet.route('/drivers/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def edit_driver(id):
     """Edit driver"""
     driver = Driver.query.get_or_404(id)
@@ -323,7 +338,7 @@ def edit_driver(id):
 
 @fleet.route('/drivers/<int:id>/approve', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def toggle_driver_approval(id):
     """Toggle driver approval status"""
     driver = Driver.query.get_or_404(id)
@@ -343,7 +358,7 @@ def toggle_driver_approval(id):
 
 @fleet.route('/drivers/<int:id>/verify', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def verify_driver(id):
     """
     Verify driver and generate login credentials for mobile app
@@ -395,7 +410,7 @@ def verify_driver(id):
 
 @fleet.route('/drivers/<int:id>/reset-password', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def reset_driver_password(id):
     """Reset driver password and generate a new one"""
     try:
@@ -427,7 +442,7 @@ def reset_driver_password(id):
 
 @fleet.route('/drivers/<int:id>/delete', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def delete_driver(id):
     """Delete driver"""
     driver = Driver.query.get_or_404(id)
@@ -463,7 +478,7 @@ def delete_driver(id):
 
 @fleet.route('/missions')
 @login_required
-@admin_required
+@fleet_access_required
 def missions_list():
     """List all missions"""
     status_filter = request.args.get('status', '')
@@ -496,7 +511,7 @@ def missions_list():
 
 @fleet.route('/missions/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def add_mission():
     """Create new mission"""
     if request.method == 'POST':
@@ -577,7 +592,7 @@ def add_mission():
 
 @fleet.route('/missions/<int:id>')
 @login_required
-@admin_required
+@fleet_access_required
 def mission_details(id):
     """View mission details"""
     mission = Mission.query.get_or_404(id)
@@ -587,7 +602,7 @@ def mission_details(id):
 
 @fleet.route('/missions/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def edit_mission(id):
     """Edit mission"""
     mission = Mission.query.get_or_404(id)
@@ -636,7 +651,7 @@ def edit_mission(id):
 
 @fleet.route('/missions/<int:id>/complete', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def complete_mission(id):
     """Mark mission as completed"""
     mission = Mission.query.get_or_404(id)
@@ -655,7 +670,7 @@ def complete_mission(id):
 
 @fleet.route('/missions/<int:id>/cancel', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def cancel_mission(id):
     """Cancel a mission and notify driver"""
     mission = Mission.query.get_or_404(id)
@@ -695,7 +710,7 @@ def cancel_mission(id):
 
 @fleet.route('/missions/<int:id>/delete', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def delete_mission(id):
     """Delete mission"""
     mission = Mission.query.get_or_404(id)
@@ -715,7 +730,7 @@ def delete_mission(id):
 
 @fleet.route('/mission-requests')
 @login_required
-@admin_required
+@fleet_access_required
 def mission_requests():
     """List pending driver-reported mission requests"""
     status_filter = request.args.get('status', 'pending')
@@ -740,7 +755,7 @@ def mission_requests():
 
 @fleet.route('/missions/<int:id>/approve', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def approve_mission(id):
     """Approve a driver-reported mission request"""
     mission = Mission.query.get_or_404(id)
@@ -783,7 +798,7 @@ def approve_mission(id):
 
 @fleet.route('/missions/<int:id>/reject', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def reject_mission(id):
     """Reject a driver-reported mission request"""
     mission = Mission.query.get_or_404(id)
@@ -825,7 +840,7 @@ def reject_mission(id):
 
 @fleet.route('/missions/<int:id>/allow-start', methods=['POST'])
 @login_required
-@admin_required
+@fleet_access_required
 def allow_mission_start(id):
     """Give driver permission to start the mission"""
     mission = Mission.query.get_or_404(id)
@@ -878,3 +893,139 @@ def allow_mission_start(id):
     if request.form.get('from_requests'):
         return redirect(url_for('fleet.mission_requests'))
     return redirect(url_for('fleet.mission_details', id=id))
+
+
+# ==================== FLEET MANAGER AUTHENTICATION ====================
+
+@fleet.route('/login', methods=['GET', 'POST'])
+def fleet_login():
+    """Fleet manager login page"""
+    from flask_login import login_user
+    from app.models import User
+
+    if current_user.is_authenticated:
+        if current_user.is_admin or current_user.is_fleet_manager:
+            return redirect(url_for('fleet.dashboard'))
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            flash('البريد الإلكتروني غير مسجل', 'error')
+            return render_template('fleet/login.html')
+
+        if not user.check_password(password):
+            flash('كلمة المرور غير صحيحة', 'error')
+            return render_template('fleet/login.html')
+
+        if not user.is_fleet_manager and not user.is_admin:
+            flash('هذا الحساب ليس لديه صلاحية إدارة الأسطول', 'error')
+            return render_template('fleet/login.html')
+
+        login_user(user, remember=True)
+        flash(f'مرحباً {user.name}!', 'success')
+        return redirect(url_for('fleet.dashboard'))
+
+    return render_template('fleet/login.html')
+
+
+@fleet.route('/logout')
+@login_required
+def fleet_logout():
+    """Fleet manager logout"""
+    from flask_login import logout_user
+    logout_user()
+    flash('تم تسجيل الخروج بنجاح', 'success')
+    return redirect(url_for('fleet.fleet_login'))
+
+
+# ==================== DRIVER LOCATION TRACKING ====================
+
+@fleet.route('/drivers/locations')
+@login_required
+@fleet_access_required
+def driver_locations():
+    """Page showing all drivers on a map with real-time locations"""
+    drivers = Driver.query.filter_by(is_approved=True).all()
+
+    # Count online drivers
+    online_count = Driver.query.filter_by(is_approved=True, is_online=True).count()
+    total_count = len(drivers)
+
+    return render_template('fleet/driver_locations.html',
+                         drivers=drivers,
+                         online_count=online_count,
+                         total_count=total_count)
+
+
+@fleet.route('/api/drivers/locations')
+@login_required
+@fleet_access_required
+def api_driver_locations():
+    """API endpoint to get all driver locations for real-time updates"""
+    drivers = Driver.query.filter_by(is_approved=True).all()
+
+    drivers_data = []
+    for driver in drivers:
+        driver_info = {
+            'id': driver.id,
+            'name': driver.name,
+            'phone': driver.phone,
+            'driver_number': driver.driver_number,
+            'is_online': driver.is_online,
+            'has_location': driver.current_latitude is not None,
+            'latitude': driver.current_latitude,
+            'longitude': driver.current_longitude,
+            'location_updated_at': driver.current_location_updated_at.isoformat() if driver.current_location_updated_at else None,
+            'has_recent_location': driver.has_recent_location,
+            'photo_url': f"/static/uploads/drivers/{driver.photo_filename}" if driver.photo_filename else None,
+            'current_mission': None
+        }
+
+        # Get current active mission if any
+        active_mission = Mission.query.filter_by(
+            driver_id=driver.id,
+            status='in_progress'
+        ).first()
+
+        if active_mission:
+            driver_info['current_mission'] = {
+                'id': active_mission.id,
+                'from': active_mission.from_location,
+                'to': active_mission.to_location,
+                'car': f"{active_mission.fleet_car.brand} {active_mission.fleet_car.model}" if active_mission.fleet_car else None
+            }
+
+        drivers_data.append(driver_info)
+
+    return jsonify({
+        'success': True,
+        'drivers': drivers_data,
+        'online_count': sum(1 for d in drivers_data if d['is_online']),
+        'total_count': len(drivers_data)
+    })
+
+
+@fleet.route('/api/driver/<int:id>/location')
+@login_required
+@fleet_access_required
+def api_single_driver_location(id):
+    """API endpoint to get single driver location"""
+    driver = Driver.query.get_or_404(id)
+
+    return jsonify({
+        'success': True,
+        'driver': {
+            'id': driver.id,
+            'name': driver.name,
+            'is_online': driver.is_online,
+            'latitude': driver.current_latitude,
+            'longitude': driver.current_longitude,
+            'location_updated_at': driver.current_location_updated_at.isoformat() if driver.current_location_updated_at else None,
+            'has_recent_location': driver.has_recent_location
+        }
+    })

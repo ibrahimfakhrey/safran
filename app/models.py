@@ -27,7 +27,8 @@ class User(UserMixin, db.Model):
     wallet_balance = db.Column(db.Float, default=0.0)
     rewards_balance = db.Column(db.Float, default=0.0)  # Separate balance for referral rewards
     is_admin = db.Column(db.Boolean, default=False)
-    
+    is_fleet_manager = db.Column(db.Boolean, default=False, index=True)  # Fleet manager role
+
     # Social Authentication Fields
     auth_provider = db.Column(db.String(20), default='email', index=True)  # 'email', 'google', 'apple'
     provider_user_id = db.Column(db.String(255), index=True)  # Unique ID from provider
@@ -926,6 +927,13 @@ class Driver(db.Model):
     fcm_token_updated_at = db.Column(db.DateTime)  # When FCM token was last updated
     is_verified = db.Column(db.Boolean, default=False, index=True)  # Can login to mobile app
 
+    # Real-time location tracking
+    current_latitude = db.Column(db.Float)  # Current GPS latitude
+    current_longitude = db.Column(db.Float)  # Current GPS longitude
+    current_location_updated_at = db.Column(db.DateTime)  # When location was last updated
+    is_online = db.Column(db.Boolean, default=False, index=True)  # Is driver app currently active
+    last_seen_at = db.Column(db.DateTime)  # Last activity timestamp
+
     # Document uploads
     photo_filename = db.Column(db.String(300))  # Driver photo
     license_filename = db.Column(db.String(300))  # Driving license document
@@ -987,6 +995,39 @@ class Driver(db.Model):
     def verification_status_arabic(self):
         """Get verification status in Arabic"""
         return 'مفعّل' if self.is_verified else 'غير مفعّل'
+
+    @property
+    def online_status_arabic(self):
+        """Get online status in Arabic"""
+        return 'متصل' if self.is_online else 'غير متصل'
+
+    @property
+    def location_age_seconds(self):
+        """Get how old the current location data is in seconds"""
+        if not self.current_location_updated_at:
+            return None
+        return (datetime.utcnow() - self.current_location_updated_at).total_seconds()
+
+    @property
+    def has_recent_location(self):
+        """Check if driver has location data updated within last 5 minutes"""
+        if not self.current_location_updated_at:
+            return False
+        age = (datetime.utcnow() - self.current_location_updated_at).total_seconds()
+        return age < 300  # 5 minutes
+
+    def update_location(self, latitude, longitude):
+        """Update driver's current location"""
+        self.current_latitude = latitude
+        self.current_longitude = longitude
+        self.current_location_updated_at = datetime.utcnow()
+        self.last_seen_at = datetime.utcnow()
+        self.is_online = True
+
+    def set_offline(self):
+        """Mark driver as offline"""
+        self.is_online = False
+        self.last_seen_at = datetime.utcnow()
 
     def __repr__(self):
         return f'<Driver {self.name} - {self.phone}>'

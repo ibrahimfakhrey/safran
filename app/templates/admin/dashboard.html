@@ -64,7 +64,7 @@
     {% endif %}
 
     <!-- Quick Actions -->
-    <div class="grid grid-4" style="margin-bottom: 3rem;">
+    <div class="grid grid-4" style="margin-bottom: 2rem;">
         <a href="{{ url_for('admin.add_apartment') }}" class="btn btn-primary" style="text-decoration: none;">
             <i class="fas fa-plus"></i> إضافة عقار جديد
         </a>
@@ -83,6 +83,19 @@
                 {{ stats.pending_requests }}
             </span>
             {% endif %}
+        </a>
+    </div>
+
+    <!-- Fleet Management Quick Actions -->
+    <div class="grid grid-3" style="margin-bottom: 3rem;">
+        <a href="{{ url_for('fleet.dashboard') }}" class="btn btn-secondary" style="text-decoration: none; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.5); color: #10B981;">
+            <i class="fas fa-truck"></i> إدارة الأسطول
+        </a>
+        <a href="{{ url_for('admin.fleet_managers') }}" class="btn btn-secondary" style="text-decoration: none;">
+            <i class="fas fa-user-tie"></i> مديري الأسطول
+        </a>
+        <a href="{{ url_for('fleet.driver_locations') }}" class="btn btn-secondary" style="text-decoration: none; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.5); color: #3B82F6;">
+            <i class="fas fa-map-marker-alt"></i> مواقع السائقين
         </a>
     </div>
 

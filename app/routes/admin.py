@@ -1476,3 +1476,152 @@ def reject_withdrawal(request_id):
     
     flash(f'تم رفض طلب السحب', 'success')
     return redirect(url_for('admin.withdrawal_requests'))
+
+
+# ============= FLEET MANAGER MANAGEMENT =============
+
+@bp.route('/fleet-managers')
+@admin_required
+def fleet_managers():
+    """List all fleet managers"""
+    managers = User.query.filter_by(is_fleet_manager=True).order_by(db.desc(User.date_joined)).all()
+    return render_template('admin/fleet_managers.html', managers=managers)
+
+
+@bp.route('/fleet-managers/add', methods=['GET', 'POST'])
+@admin_required
+def add_fleet_manager():
+    """Add new fleet manager account"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        phone = request.form.get('phone', '').strip()
+
+        # Validation
+        if not name or not email or not password:
+            flash('جميع الحقول مطلوبة', 'error')
+            return render_template('admin/fleet_manager_form.html', manager=None)
+
+        # Check if email exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('البريد الإلكتروني مستخدم بالفعل', 'error')
+            return render_template('admin/fleet_manager_form.html', manager=None)
+
+        try:
+            # Create new fleet manager user
+            manager = User(
+                name=name,
+                email=email,
+                phone=phone,
+                is_fleet_manager=True,
+                email_verified=True  # Auto verify admin-created accounts
+            )
+            manager.set_password(password)
+
+            db.session.add(manager)
+            db.session.commit()
+
+            flash(f'تم إنشاء حساب مدير الأسطول: {name}', 'success')
+            return redirect(url_for('admin.fleet_managers'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return render_template('admin/fleet_manager_form.html', manager=None)
+
+
+@bp.route('/fleet-managers/<int:manager_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_fleet_manager(manager_id):
+    """Edit fleet manager account"""
+    manager = User.query.get_or_404(manager_id)
+
+    if not manager.is_fleet_manager:
+        flash('هذا المستخدم ليس مدير أسطول', 'error')
+        return redirect(url_for('admin.fleet_managers'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        new_password = request.form.get('password', '')
+
+        # Validation
+        if not name or not email:
+            flash('الاسم والبريد الإلكتروني مطلوبان', 'error')
+            return render_template('admin/fleet_manager_form.html', manager=manager)
+
+        # Check if email exists for another user
+        existing_user = User.query.filter(User.email == email, User.id != manager_id).first()
+        if existing_user:
+            flash('البريد الإلكتروني مستخدم بالفعل', 'error')
+            return render_template('admin/fleet_manager_form.html', manager=manager)
+
+        try:
+            manager.name = name
+            manager.email = email
+            manager.phone = phone
+
+            # Update password if provided
+            if new_password:
+                manager.set_password(new_password)
+
+            db.session.commit()
+
+            flash('تم تحديث بيانات مدير الأسطول', 'success')
+            return redirect(url_for('admin.fleet_managers'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return render_template('admin/fleet_manager_form.html', manager=manager)
+
+
+@bp.route('/fleet-managers/<int:manager_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_fleet_manager(manager_id):
+    """Toggle fleet manager status"""
+    manager = User.query.get_or_404(manager_id)
+
+    try:
+        manager.is_fleet_manager = not manager.is_fleet_manager
+        db.session.commit()
+
+        status = 'تم تفعيل' if manager.is_fleet_manager else 'تم إلغاء تفعيل'
+        flash(f'{status} صلاحية مدير الأسطول لـ {manager.name}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return redirect(url_for('admin.fleet_managers'))
+
+
+@bp.route('/fleet-managers/<int:manager_id>/delete', methods=['POST'])
+@admin_required
+def delete_fleet_manager(manager_id):
+    """Delete fleet manager account"""
+    manager = User.query.get_or_404(manager_id)
+
+    if manager.is_admin:
+        flash('لا يمكن حذف حساب المسؤول', 'error')
+        return redirect(url_for('admin.fleet_managers'))
+
+    try:
+        # Just remove fleet manager role, don't delete if they have other data
+        if manager.shares.count() > 0 or manager.transactions.count() > 0:
+            manager.is_fleet_manager = False
+            db.session.commit()
+            flash('تم إلغاء صلاحية مدير الأسطول (المستخدم لديه بيانات أخرى)', 'success')
+        else:
+            db.session.delete(manager)
+            db.session.commit()
+            flash('تم حذف حساب مدير الأسطول', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return redirect(url_for('admin.fleet_managers'))

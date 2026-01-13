@@ -1,0 +1,609 @@
+{% extends 'base.html' %}
+
+{% block title %}تتبع مواقع السائقين - إدارة الأسطول{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .locations-page {
+        padding: 2rem 0;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .stats-badges {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .stat-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(5, 9, 20, 0.8);
+        border: 1px solid rgba(194, 161, 77, 0.3);
+        border-radius: 2rem;
+        font-size: 0.9rem;
+    }
+
+    .stat-badge.online {
+        color: #10B981;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .stat-badge.total {
+        color: #C2A14D;
+    }
+
+    .map-container {
+        position: relative;
+        background: var(--secondary-black);
+        border: 2px solid rgba(194, 161, 77, 0.3);
+        border-radius: 1rem;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    #map {
+        height: 500px;
+        width: 100%;
+        background: #1a1a2e;
+    }
+
+    .map-controls {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1000;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .map-btn {
+        padding: 0.5rem 1rem;
+        background: rgba(10, 10, 10, 0.9);
+        border: 1px solid rgba(194, 161, 77, 0.5);
+        border-radius: 0.5rem;
+        color: #C2A14D;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+
+    .map-btn:hover {
+        background: rgba(194, 161, 77, 0.2);
+    }
+
+    .map-btn.active {
+        background: #C2A14D;
+        color: #0A0A0A;
+    }
+
+    .drivers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .driver-card {
+        background: linear-gradient(135deg, var(--secondary-black) 0%, var(--background-navy) 100%);
+        border: 1px solid rgba(194, 161, 77, 0.2);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .driver-card:hover {
+        border-color: rgba(194, 161, 77, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .driver-card.online {
+        border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .driver-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .driver-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #C2A14D 0%, #D8BD66 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: #0A0A0A;
+        overflow: hidden;
+    }
+
+    .driver-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .driver-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+        color: var(--text-light);
+    }
+
+    .driver-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-indicator.online {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+    }
+
+    .status-indicator.offline {
+        background: rgba(107, 114, 128, 0.1);
+        color: #6B7280;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+    }
+
+    .status-indicator.offline .status-dot {
+        animation: none;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .driver-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(194, 161, 77, 0.1);
+    }
+
+    .driver-details span {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .driver-details i {
+        color: #C2A14D;
+        width: 16px;
+    }
+
+    .mission-badge {
+        grid-column: span 2;
+        background: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .mission-badge i {
+        color: #3B82F6;
+    }
+
+    .no-location {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-style: italic;
+    }
+
+    .last-update {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    /* Leaflet custom markers */
+    .driver-marker {
+        background: #C2A14D;
+        border-radius: 50%;
+        border: 3px solid #0A0A0A;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .driver-marker.online {
+        background: #10B981;
+        animation: markerPulse 2s infinite;
+    }
+
+    @keyframes markerPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+        50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    }
+
+    .leaflet-popup-content-wrapper {
+        background: #0A0A0A;
+        border: 1px solid #C2A14D;
+        border-radius: 0.5rem;
+    }
+
+    .leaflet-popup-content {
+        color: #fff;
+        margin: 0.75rem;
+    }
+
+    .leaflet-popup-tip {
+        background: #0A0A0A;
+        border: 1px solid #C2A14D;
+    }
+
+    .popup-title {
+        color: #C2A14D;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .popup-info {
+        font-size: 0.85rem;
+        color: #999;
+    }
+
+    .refresh-indicator {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        background: rgba(10, 10, 10, 0.9);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(194, 161, 77, 0.3);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .refresh-indicator i {
+        color: #C2A14D;
+        margin-left: 0.5rem;
+    }
+
+    .refresh-indicator.updating i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container locations-page">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-map-marker-alt"></i>
+            تتبع مواقع السائقين
+        </h1>
+        <div class="stats-badges">
+            <div class="stat-badge online">
+                <i class="fas fa-circle"></i>
+                <span id="online-count">{{ online_count }}</span> متصل
+            </div>
+            <div class="stat-badge total">
+                <i class="fas fa-users"></i>
+                <span id="total-count">{{ total_count }}</span> سائق
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div class="map-container">
+        <div class="map-controls">
+            <button class="map-btn active" onclick="showAllDrivers()">
+                <i class="fas fa-users"></i> الكل
+            </button>
+            <button class="map-btn" onclick="showOnlineOnly()">
+                <i class="fas fa-circle"></i> المتصلين فقط
+            </button>
+            <button class="map-btn" onclick="refreshLocations()">
+                <i class="fas fa-sync-alt"></i> تحديث
+            </button>
+        </div>
+        <div id="map"></div>
+        <div class="refresh-indicator" id="refresh-indicator">
+            <i class="fas fa-sync-alt"></i>
+            آخر تحديث: <span id="last-refresh">الآن</span>
+        </div>
+    </div>
+
+    <!-- Drivers List -->
+    <h3 style="margin-bottom: 1rem;">
+        <i class="fas fa-list"></i> قائمة السائقين
+    </h3>
+    <div class="drivers-grid" id="drivers-list">
+        {% for driver in drivers %}
+        <div class="driver-card {% if driver.is_online %}online{% endif %}"
+             data-driver-id="{{ driver.id }}"
+             data-lat="{{ driver.current_latitude or '' }}"
+             data-lng="{{ driver.current_longitude or '' }}"
+             onclick="focusOnDriver({{ driver.id }})">
+            <div class="driver-header">
+                <div class="driver-avatar">
+                    {% if driver.photo_filename %}
+                    <img src="/static/uploads/drivers/{{ driver.photo_filename }}" alt="{{ driver.name }}">
+                    {% else %}
+                    <i class="fas fa-user"></i>
+                    {% endif %}
+                </div>
+                <div class="driver-info">
+                    <h4>{{ driver.name }}</h4>
+                    <p>{{ driver.driver_number or 'غير مفعّل' }}</p>
+                </div>
+                <div class="status-indicator {% if driver.is_online %}online{% else %}offline{% endif %}">
+                    <span class="status-dot"></span>
+                    {{ driver.online_status_arabic }}
+                </div>
+            </div>
+            <div class="driver-details">
+                <span><i class="fas fa-phone"></i> {{ driver.phone }}</span>
+                {% if driver.current_latitude and driver.current_longitude %}
+                <span><i class="fas fa-map-pin"></i> موقع متاح</span>
+                {% if driver.current_location_updated_at %}
+                <span class="last-update" style="grid-column: span 2;">
+                    <i class="fas fa-clock"></i>
+                    آخر تحديث: {{ driver.current_location_updated_at.strftime('%H:%M:%S') }}
+                </span>
+                {% endif %}
+                {% else %}
+                <span class="no-location"><i class="fas fa-map-pin"></i> لا يوجد موقع</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Initialize map centered on Egypt (Cairo)
+    const map = L.map('map').setView([30.0444, 31.2357], 10);
+
+    // Add dark tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Store markers
+    let markers = {};
+    let showOnline = false;
+
+    // Custom marker icon
+    function createMarkerIcon(isOnline) {
+        return L.divIcon({
+            className: 'driver-marker ' + (isOnline ? 'online' : ''),
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            popupAnchor: [0, -15]
+        });
+    }
+
+    // Initialize markers from page data
+    function initializeMarkers() {
+        const driverCards = document.querySelectorAll('.driver-card');
+        const bounds = [];
+
+        driverCards.forEach(card => {
+            const driverId = card.dataset.driverId;
+            const lat = parseFloat(card.dataset.lat);
+            const lng = parseFloat(card.dataset.lng);
+            const isOnline = card.classList.contains('online');
+            const name = card.querySelector('.driver-info h4').textContent;
+            const number = card.querySelector('.driver-info p').textContent;
+
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const marker = L.marker([lat, lng], {
+                    icon: createMarkerIcon(isOnline)
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div class="popup-title">${name}</div>
+                    <div class="popup-info">
+                        <div>${number}</div>
+                        <div>${isOnline ? '<span style="color:#10B981">متصل</span>' : '<span style="color:#6B7280">غير متصل</span>'}</div>
+                    </div>
+                `);
+
+                markers[driverId] = {
+                    marker: marker,
+                    isOnline: isOnline,
+                    lat: lat,
+                    lng: lng
+                };
+
+                bounds.push([lat, lng]);
+            }
+        });
+
+        // Fit map to show all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }
+
+    // Focus on specific driver
+    function focusOnDriver(driverId) {
+        const driverData = markers[driverId];
+        if (driverData) {
+            map.setView([driverData.lat, driverData.lng], 15);
+            driverData.marker.openPopup();
+        }
+    }
+
+    // Show all drivers
+    function showAllDrivers() {
+        showOnline = false;
+        document.querySelectorAll('.map-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.map-btn:first-child').classList.add('active');
+
+        Object.values(markers).forEach(data => {
+            data.marker.addTo(map);
+        });
+
+        document.querySelectorAll('.driver-card').forEach(card => {
+            card.style.display = 'block';
+        });
+    }
+
+    // Show online drivers only
+    function showOnlineOnly() {
+        showOnline = true;
+        document.querySelectorAll('.map-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.map-btn:nth-child(2)').classList.add('active');
+
+        Object.entries(markers).forEach(([driverId, data]) => {
+            if (data.isOnline) {
+                data.marker.addTo(map);
+            } else {
+                map.removeLayer(data.marker);
+            }
+        });
+
+        document.querySelectorAll('.driver-card').forEach(card => {
+            if (card.classList.contains('online')) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Refresh locations from API
+    async function refreshLocations() {
+        const indicator = document.getElementById('refresh-indicator');
+        indicator.classList.add('updating');
+
+        try {
+            const response = await fetch('{{ url_for("fleet.api_driver_locations") }}');
+            const data = await response.json();
+
+            if (data.success) {
+                // Update counts
+                document.getElementById('online-count').textContent = data.online_count;
+                document.getElementById('total-count').textContent = data.total_count;
+
+                // Update markers and cards
+                data.drivers.forEach(driver => {
+                    const card = document.querySelector(`.driver-card[data-driver-id="${driver.id}"]`);
+
+                    if (card) {
+                        // Update card data
+                        card.dataset.lat = driver.latitude || '';
+                        card.dataset.lng = driver.longitude || '';
+
+                        if (driver.is_online) {
+                            card.classList.add('online');
+                        } else {
+                            card.classList.remove('online');
+                        }
+
+                        // Update status indicator
+                        const statusIndicator = card.querySelector('.status-indicator');
+                        statusIndicator.className = 'status-indicator ' + (driver.is_online ? 'online' : 'offline');
+                        statusIndicator.innerHTML = `<span class="status-dot"></span> ${driver.is_online ? 'متصل' : 'غير متصل'}`;
+                    }
+
+                    // Update or create marker
+                    if (driver.latitude && driver.longitude) {
+                        if (markers[driver.id]) {
+                            markers[driver.id].marker.setLatLng([driver.latitude, driver.longitude]);
+                            markers[driver.id].marker.setIcon(createMarkerIcon(driver.is_online));
+                            markers[driver.id].isOnline = driver.is_online;
+                            markers[driver.id].lat = driver.latitude;
+                            markers[driver.id].lng = driver.longitude;
+                        } else {
+                            const marker = L.marker([driver.latitude, driver.longitude], {
+                                icon: createMarkerIcon(driver.is_online)
+                            }).addTo(map);
+
+                            marker.bindPopup(`
+                                <div class="popup-title">${driver.name}</div>
+                                <div class="popup-info">
+                                    <div>${driver.driver_number || 'غير مفعّل'}</div>
+                                    <div>${driver.is_online ? '<span style="color:#10B981">متصل</span>' : '<span style="color:#6B7280">غير متصل</span>'}</div>
+                                </div>
+                            `);
+
+                            markers[driver.id] = {
+                                marker: marker,
+                                isOnline: driver.is_online,
+                                lat: driver.latitude,
+                                lng: driver.longitude
+                            };
+                        }
+
+                        // Apply filter if showing online only
+                        if (showOnline && !driver.is_online) {
+                            map.removeLayer(markers[driver.id].marker);
+                        }
+                    }
+                });
+
+                // Update last refresh time
+                document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString('ar-EG');
+            }
+        } catch (error) {
+            console.error('Error refreshing locations:', error);
+        }
+
+        indicator.classList.remove('updating');
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeMarkers();
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshLocations, 30000);
+    });
+</script>
+{% endblock %}

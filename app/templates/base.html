@@ -50,6 +50,13 @@
                         <li><a href="{{ url_for('admin.cars_list') }}"><i class="fas fa-car"></i> السيارات</a></li>
                         <li><a href="{{ url_for('admin.investment_requests') }}"><i class="fas fa-file-contract"></i> طلبات الاستثمار</a></li>
                         <li><a href="{{ url_for('admin.car_investment_requests') }}"><i class="fas fa-file-contract"></i> طلبات سيارات</a></li>
+                        <li><a href="{{ url_for('fleet.dashboard') }}"><i class="fas fa-truck"></i> الأسطول</a></li>
+                    {% elif current_user.is_fleet_manager %}
+                        <li><a href="{{ url_for('fleet.dashboard') }}"><i class="fas fa-tachometer-alt"></i> لوحة الأسطول</a></li>
+                        <li><a href="{{ url_for('fleet.cars_list') }}"><i class="fas fa-car"></i> السيارات</a></li>
+                        <li><a href="{{ url_for('fleet.drivers_list') }}"><i class="fas fa-users"></i> السائقين</a></li>
+                        <li><a href="{{ url_for('fleet.missions_list') }}"><i class="fas fa-tasks"></i> المهام</a></li>
+                        <li><a href="{{ url_for('fleet.driver_locations') }}"><i class="fas fa-map-marker-alt"></i> المواقع</a></li>
                     {% else %}
                         <li><a href="{{ url_for('user_views.dashboard') }}"><i class="fas fa-chart-line"></i> لوحتي</a></li>
                         <li><a href="{{ url_for('user_views.my_investment_requests') }}"><i class="fas fa-file-contract"></i> طلباتي</a></li>

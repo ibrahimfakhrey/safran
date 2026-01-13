@@ -832,3 +832,174 @@ def get_driver_stats(driver):
         },
         message="تم جلب الإحصائيات بنجاح"
     )
+
+
+# ==================== Location Tracking Endpoints ====================
+
+@driver_api_bp.route('/update-location', methods=['POST'])
+@driver_required
+def update_driver_location(driver):
+    """
+    Update driver's current GPS location
+
+    Request body:
+    {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+    }
+
+    This should be called periodically by the driver app (every 10-30 seconds)
+    to keep the location updated for fleet managers to track.
+    """
+    data = request.get_json()
+
+    if not data:
+        return error_response(
+            message="البيانات مطلوبة",
+            code="MISSING_DATA",
+            status=400
+        )
+
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+
+    if latitude is None or longitude is None:
+        return error_response(
+            message="إحداثيات الموقع مطلوبة",
+            code="MISSING_COORDINATES",
+            status=400
+        )
+
+    try:
+        # Validate coordinates are within reasonable range
+        if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+            return error_response(
+                message="إحداثيات غير صالحة",
+                code="INVALID_COORDINATES",
+                status=400
+            )
+
+        # Update driver location
+        driver.update_location(latitude, longitude)
+        db.session.commit()
+
+        return success_response(
+            data={
+                "latitude": driver.current_latitude,
+                "longitude": driver.current_longitude,
+                "updated_at": driver.current_location_updated_at.isoformat()
+            },
+            message="تم تحديث الموقع بنجاح"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء تحديث الموقع",
+            code="UPDATE_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@driver_api_bp.route('/go-online', methods=['POST'])
+@driver_required
+def driver_go_online(driver):
+    """
+    Mark driver as online (active in the app)
+
+    Call this when driver opens the app or goes on duty
+    """
+    try:
+        driver.is_online = True
+        driver.last_seen_at = datetime.utcnow()
+        db.session.commit()
+
+        return success_response(
+            message="أنت الآن متصل"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ",
+            code="ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@driver_api_bp.route('/go-offline', methods=['POST'])
+@driver_required
+def driver_go_offline(driver):
+    """
+    Mark driver as offline
+
+    Call this when driver closes the app or goes off duty
+    """
+    try:
+        driver.set_offline()
+        db.session.commit()
+
+        return success_response(
+            message="أنت الآن غير متصل"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ",
+            code="ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@driver_api_bp.route('/heartbeat', methods=['POST'])
+@driver_required
+def driver_heartbeat(driver):
+    """
+    Heartbeat endpoint to keep driver marked as online
+    and optionally update location
+
+    Request body (optional):
+    {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+    }
+
+    Call this every 30 seconds to maintain online status
+    """
+    try:
+        data = request.get_json() or {}
+
+        # Update last seen
+        driver.is_online = True
+        driver.last_seen_at = datetime.utcnow()
+
+        # Update location if provided
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        if latitude is not None and longitude is not None:
+            if -90 <= latitude <= 90 and -180 <= longitude <= 180:
+                driver.update_location(latitude, longitude)
+
+        db.session.commit()
+
+        return success_response(
+            data={
+                "is_online": driver.is_online,
+                "last_seen_at": driver.last_seen_at.isoformat()
+            },
+            message="تم التحديث"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ",
+            code="ERROR",
+            details=str(e),
+            status=500
+        )

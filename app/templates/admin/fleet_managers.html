@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة مديري الأسطول{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <h1 style="margin: 0;">
+            <i class="fas fa-user-tie"></i> مديري الأسطول
+        </h1>
+        <a href="{{ url_for('admin.add_fleet_manager') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> إضافة مدير أسطول
+        </a>
+    </div>
+
+    <!-- Info Box -->
+    <div class="card" style="margin-bottom: 2rem; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);">
+        <div style="padding: 1rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <i class="fas fa-info-circle" style="color: #3B82F6; font-size: 1.5rem; margin-top: 0.25rem;"></i>
+            <div>
+                <h5 style="color: #3B82F6; margin: 0 0 0.5rem 0;">صلاحيات مدير الأسطول</h5>
+                <p style="color: var(--text-light); margin: 0; font-size: 0.9rem;">
+                    مدير الأسطول يمكنه إدارة السيارات والسائقين والمهام فقط، ولا يمكنه الوصول إلى:
+                    الشقق، المستخدمين، طلبات الاستثمار، أو الإعدادات الإدارية الأخرى.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if managers %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الهاتف</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>الحالة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manager in managers %}
+                    <tr style="border-bottom: 1px solid rgba(194, 161, 77, 0.2);">
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #C2A14D 0%, #D8BD66 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user-tie" style="color: #0A0A0A;"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: var(--text-light);">{{ manager.name }}</strong>
+                                    {% if manager.is_admin %}
+                                    <span class="badge badge-gold" style="margin-right: 0.5rem;">مسؤول</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color: var(--text-muted);">{{ manager.email }}</td>
+                        <td style="color: var(--text-muted);">{{ manager.phone or '-' }}</td>
+                        <td style="color: var(--text-muted);">{{ manager.date_joined.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if manager.is_fleet_manager %}
+                            <span class="badge badge-success">مفعّل</span>
+                            {% else %}
+                            <span class="badge badge-danger">معطّل</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <a href="{{ url_for('admin.edit_fleet_manager', manager_id=manager.id) }}"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ url_for('admin.toggle_fleet_manager', manager_id=manager.id) }}"
+                                      method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-{% if manager.is_fleet_manager %}warning{% else %}success{% endif %} btn-sm"
+                                            title="{% if manager.is_fleet_manager %}تعطيل{% else %}تفعيل{% endif %}">
+                                        <i class="fas fa-{% if manager.is_fleet_manager %}ban{% else %}check{% endif %}"></i>
+                                    </button>
+                                </form>
+                                {% if not manager.is_admin %}
+                                <form action="{{ url_for('admin.delete_fleet_manager', manager_id=manager.id) }}"
+                                      method="POST" style="display: inline;"
+                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا المدير؟');">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <i class="fas fa-user-tie fa-3x" style="color: var(--text-muted); margin-bottom: 1rem;"></i>
+        <h4 style="color: var(--text-muted);">لا يوجد مديري أسطول</h4>
+        <p style="color: var(--text-muted);">أضف مدير أسطول جديد للبدء</p>
+        <a href="{{ url_for('admin.add_fleet_manager') }}" class="btn btn-primary" style="margin-top: 1rem;">
+            <i class="fas fa-plus"></i> إضافة مدير أسطول
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Quick Link to Fleet Dashboard -->
+    <div class="card" style="margin-top: 2rem;">
+        <div style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h5 style="color: var(--primary-gold); margin: 0 0 0.5rem 0;">
+                    <i class="fas fa-truck"></i> لوحة إدارة الأسطول
+                </h5>
+                <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
+                    انتقل إلى لوحة إدارة الأسطول لإدارة السيارات والسائقين والمهام
+                </p>
+            </div>
+            <a href="{{ url_for('fleet.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-external-link-alt"></i> فتح إدارة الأسطول
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
