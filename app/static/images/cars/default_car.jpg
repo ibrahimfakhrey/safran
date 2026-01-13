@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="carBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A1929;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A2332;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="carGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#carBg)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="150" cy="150" r="80" fill="#D4AF37" opacity="0.05"/>
+  <circle cx="650" cy="450" r="100" fill="#D4AF37" opacity="0.08"/>
+  
+  <!-- Car Icon -->
+  <g transform="translate(400, 300)">
+    <!-- Car Body -->
+    <path d="M -120 -20 L -80 -60 L 60 -60 L 100 -20 L 120 -20 L 120 40 L -120 40 Z" 
+          fill="url(#carGold)" stroke="#D4AF37" stroke-width="3"/>
+    
+    <!-- Car Windows -->
+    <rect x="-70" y="-55" width="50" height="30" fill="#1A2332" rx="3"/>
+    <rect x="-10" y="-55" width="60" height="30" fill="#1A2332" rx="3"/>
+    
+    <!-- Car Details -->
+    <rect x="-115" y="0" width="30" height="15" fill="#1A2332" rx="2"/>
+    <rect x="85" y="0" width="30" height="15" fill="#1A2332" rx="2"/>
+    
+    <!-- Wheels -->
+    <circle cx="-70" cy="40" r="20" fill="#1A2332" stroke="#D4AF37" stroke-width="2"/>
+    <circle cx="-70" cy="40" r="10" fill="#D4AF37"/>
+    <circle cx="70" cy="40" r="20" fill="#1A2332" stroke="#D4AF37" stroke-width="2"/>
+    <circle cx="70" cy="40" r="10" fill="#D4AF37"/>
+    
+    <!-- Wheel arches shadow -->
+    <ellipse cx="-70" cy="40" rx="25" ry="5" fill="#000" opacity="0.2"/>
+    <ellipse cx="70" cy="40" rx="25" ry="5" fill="#000" opacity="0.2"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="400" y="480" font-family="Cairo, Arial, sans-serif" font-size="32" 
+        font-weight="bold" fill="#D4AF37" text-anchor="middle">
+    سيارة استثمارية
+  </text>
+  
+  <text x="400" y="520" font-family="Cairo, Arial, sans-serif" font-size="20" 
+        fill="#8BA3B8" text-anchor="middle">
+    عائد شهري مضمون
+  </text>
+</svg>

@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.venv
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Uploads - Allow images to be pushed to GitHub
+# Apartment images
+!app/static/images/apartments/*.jpg
+!app/static/images/apartments/*.png
+!app/static/images/apartments/*.jpeg
+
+# Car images (allow default and specific images)
+!app/static/images/cars/default_car.jpg
+!app/static/images/cars/*.png
+!app/static/images/cars/*.jpg
+
+# User uploaded documents
+app/static/uploads/documents/*
+!app/static/uploads/documents/.gitkeep
+
+# Admin uploaded contracts
+app/static/uploads/contracts/*
+!app/static/uploads/contracts/.gitkeep
+
+# Database
+apartment_platform.db
+# Apple Private Key - DO NOT COMMIT
+AuthKey_*.p8
+*.p8
+
+# Firebase Service Account - DO NOT COMMIT
+firebase-service-account.json
+*firebase*.json
+!firebase.json
+._*

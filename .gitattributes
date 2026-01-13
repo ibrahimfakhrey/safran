@@ -1,0 +1,4 @@
+app/static/videos/1105(1).mp4 filter=lfs diff=lfs merge=lfs -text
+app/static/videos/*.mov filter=lfs diff=lfs merge=lfs -text
+app/static/videos/*.mp4 filter=lfs diff=lfs merge=lfs -text
+app/static/videos/*.webm filter=lfs diff=lfs merge=lfs -text
