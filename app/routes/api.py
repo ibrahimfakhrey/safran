@@ -182,7 +182,7 @@ def send_otp():
         )
         
         # Hash password for temporary storage
-        temp_password_hash = generate_password_hash(data['password'])
+        temp_password_hash = generate_password_hash(data['password'], method='pbkdf2:sha256')
         
         # Create email verification record
         verification = EmailVerification(

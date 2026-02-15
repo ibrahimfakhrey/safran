@@ -54,7 +54,7 @@ class Config:
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'ibrahimfakhreyams@gmail.com'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'lzyr svkj mynb gtsa'
+    MAIL_PASSWORD = 'miwz eeam nkrx oxvv'
     MAIL_DEFAULT_SENDER = ('i pillars i', os.environ.get('MAIL_USERNAME') or 'ibrahimfakhreyams@gmail.com')
     
     # OTP configuration

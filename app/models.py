@@ -61,7 +61,7 @@ class User(UserMixin, db.Model):
     
     def set_password(self, password):
         """Hash and set user password"""
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
     
     def check_password(self, password):
         """Verify user password"""
@@ -952,7 +952,7 @@ class Driver(db.Model):
 
     def set_password(self, password):
         """Set password hash for driver authentication"""
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         self.password_plain = password  # Store plain text for admin viewing
 
     def check_password(self, password):
