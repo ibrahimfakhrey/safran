@@ -113,6 +113,7 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('admin.approve_withdrawal', request_id=withdrawal.id) }}"
                     enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
                     <div class="form-group">
                         <label class="form-label">صورة إثبات التحويل (مطلوب)</label>
                         <input type="file" name="proof_image" class="form-control" accept="image/*,application/pdf"
@@ -127,8 +128,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-success" style="width: 100%;"
-                        onclick="return confirm('سيتم خصم {{ \" {:,.0f}\".format(withdrawal.amount) }} جنيه من محفظة
-                        المستخدم. هل أنت متأكد؟')">
+                        onclick="return confirm('سيتم خصم {{ "{:,.0f}".format(withdrawal.amount) }} جنيه من محفظة المستخدم. هل أنت متأكد؟')">
                         <i class="fas fa-check"></i> الموافقة وخصم المبلغ
                     </button>
                 </form>

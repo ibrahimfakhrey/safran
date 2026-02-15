@@ -1357,8 +1357,9 @@ def withdrawal_requests():
 def withdrawal_request_detail(request_id):
     """View withdrawal request details"""
     withdrawal = WithdrawalRequest.query.get_or_404(request_id)
+    form = WithdrawalProofForm()
     return render_template('admin/withdrawal_request_detail.html',
-                         withdrawal=withdrawal)
+                         withdrawal=withdrawal, form=form)
 
 
 class WithdrawalProofForm(FlaskForm):

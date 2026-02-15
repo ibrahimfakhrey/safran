@@ -79,7 +79,7 @@
                     <div class="form-group">
                         <label for="amount" class="form-label">المبلغ (جنيه)</label>
                         <input type="number" id="amount" name="amount" class="form-control" min="100"
-                            max="{{ current_user.wallet_balance }}" step="10" required>
+                            max="{{ '%.2f'|format(current_user.wallet_balance) }}" step="1" required>
                         <small class="text-muted">الحد الأدنى: 100 جنيه | الحد الأقصى: {{
                             "{:,.0f}".format(current_user.wallet_balance) }} جنيه</small>
                     </div>
@@ -236,7 +236,7 @@
     }
 
     function fillFullBalance() {
-        document.getElementById('amount').value = '{{ current_user.wallet_balance }}';
+        document.getElementById('amount').value = '{{ '%.2f'|format(current_user.wallet_balance) }}';
     }
 </script>
 {% endblock %}
