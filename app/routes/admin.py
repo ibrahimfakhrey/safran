@@ -730,6 +730,93 @@ def fix_approved_requests():
     })
 
 
+@bp.route('/debug/user-info/<email>')
+@admin_required
+def debug_user_info(email):
+    """Debug: Show full user info including FCM token status and test notification"""
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": f"User with email {email} not found"}), 404
+
+    # Get user shares
+    apartment_shares = Share.query.filter_by(user_id=user.id).all()
+    car_shares = CarShare.query.filter_by(user_id=user.id).all()
+
+    # Get transactions
+    recent_transactions = Transaction.query.filter_by(user_id=user.id)\
+        .order_by(Transaction.date.desc()).limit(10).all()
+
+    # Get investment requests
+    inv_requests = InvestmentRequest.query.filter_by(user_id=user.id).all()
+
+    # Try sending a test notification
+    test_result = None
+    if user.fcm_token:
+        try:
+            test_result = send_push_notification(
+                user_id=user.id,
+                title="اختبار الإشعارات",
+                body="هذا إشعار تجريبي من لوحة التحكم",
+                data={"type": "test", "screen": "wallet"}
+            )
+        except Exception as e:
+            test_result = f"Error: {str(e)}"
+
+    return jsonify({
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone,
+            "wallet_balance": user.wallet_balance,
+            "rewards_balance": user.rewards_balance,
+            "date_joined": user.date_joined.isoformat() if user.date_joined else None,
+        },
+        "fcm": {
+            "has_token": bool(user.fcm_token),
+            "token_preview": user.fcm_token[:80] + "..." if user.fcm_token else None,
+            "token_length": len(user.fcm_token) if user.fcm_token else 0,
+            "test_notification_sent": test_result,
+        },
+        "apartment_shares": [
+            {
+                "share_id": s.id,
+                "apartment_id": s.apartment_id,
+                "apartment_title": s.apartment.title,
+                "share_price": s.share_price,
+                "date_purchased": s.date_purchased.isoformat() if s.date_purchased else None,
+            } for s in apartment_shares
+        ],
+        "car_shares": [
+            {
+                "share_id": s.id,
+                "car_id": s.car_id,
+                "car_title": s.car.title,
+                "share_price": s.share_price,
+                "date_purchased": s.date_purchased.isoformat() if s.date_purchased else None,
+            } for s in car_shares
+        ],
+        "investment_requests": [
+            {
+                "id": r.id,
+                "apartment": r.apartment.title,
+                "shares_requested": r.shares_requested,
+                "status": r.status,
+                "date_submitted": r.date_submitted.isoformat() if r.date_submitted else None,
+            } for r in inv_requests
+        ],
+        "recent_transactions": [
+            {
+                "id": t.id,
+                "amount": t.amount,
+                "type": t.transaction_type,
+                "date": t.date.isoformat() if t.date else None,
+                "description": t.description,
+            } for t in recent_transactions
+        ],
+    })
+
+
 @bp.route('/payouts/distribute/<int:apartment_id>', methods=['POST'])
 @admin_required
 def distribute_payout(apartment_id):
