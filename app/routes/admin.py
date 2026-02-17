@@ -913,11 +913,31 @@ def distribute_all_payouts():
 
     for apartment in apartments:
         if apartment.shares.count() > 0:
+            rent_per_share = apartment.monthly_rent / apartment.total_shares
             total_payouts += apartment.distribute_monthly_rent()
+            # Send notifications to all shareholders
+            for share in apartment.shares:
+                notification = NotificationTemplates.rental_income(rent_per_share, apartment.title)
+                send_push_notification(
+                    user_id=share.user_id,
+                    title=notification["title"],
+                    body=notification["body"],
+                    data=notification.get("data")
+                )
 
     for car in cars:
         if car.shares.count() > 0:
+            rent_per_share = car.monthly_rent / car.total_shares
             total_payouts += car.distribute_monthly_rent()
+            # Send notifications to all shareholders
+            for share in car.shares:
+                notification = NotificationTemplates.car_income(rent_per_share, car.title)
+                send_push_notification(
+                    user_id=share.user_id,
+                    title=notification["title"],
+                    body=notification["body"],
+                    data=notification.get("data")
+                )
 
     db.session.commit()
     flash(f'تم توزيع {total_payouts} دفعة بنجاح على جميع الأصول', 'success')
