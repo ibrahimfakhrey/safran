@@ -1002,14 +1002,35 @@ def update_investment_request_status(request_id):
     form = UpdateStatusForm()
     
     if form.validate_on_submit():
+        old_status = inv_request.status
         inv_request.status = form.status.data
         inv_request.admin_notes = form.admin_notes.data
         inv_request.missing_documents = form.missing_documents.data
         inv_request.date_reviewed = datetime.utcnow()
         inv_request.reviewed_by = current_user.id
-        
+
+        # If status changed to approved, create shares (same as quick approve)
+        if form.status.data == 'approved' and old_status != 'approved':
+            apartment = inv_request.apartment
+
+            # Create Share records
+            for _ in range(inv_request.shares_requested):
+                share = Share(
+                    user_id=inv_request.user_id,
+                    apartment_id=inv_request.apartment_id,
+                    share_price=apartment.share_price
+                )
+                db.session.add(share)
+
+            # Update available shares
+            apartment.shares_available -= inv_request.shares_requested
+            if apartment.shares_available <= 0:
+                apartment.is_closed = True
+
+            print(f"✅ Status update: Created {inv_request.shares_requested} shares for user {inv_request.user.email} in {apartment.title}")
+
         db.session.commit()
-        
+
         # Send appropriate notification based on status
         if form.status.data == 'under_review':
             notification = NotificationTemplates.investment_under_review()
@@ -1027,11 +1048,19 @@ def update_investment_request_status(request_id):
                 body=notification["body"],
                 data=notification.get("data")
             )
-        
+        elif form.status.data == 'approved' and old_status != 'approved':
+            notification = NotificationTemplates.investment_approved(inv_request.apartment.title, inv_request.shares_requested)
+            send_push_notification(
+                user_id=inv_request.user_id,
+                title=notification["title"],
+                body=notification["body"],
+                data=notification.get("data")
+            )
+
         flash('تم تحديث حالة الطلب بنجاح', 'success')
     else:
         flash('حدث خطأ في تحديث الحالة', 'error')
-    
+
     return redirect(url_for('admin.review_investment_request', request_id=request_id))
 
 
