@@ -730,6 +730,47 @@ def fix_approved_requests():
     })
 
 
+@bp.route('/debug/test-withdrawal-notification/<int:user_id>')
+@admin_required
+def test_withdrawal_notification(user_id):
+    """Debug: Test sending a withdrawal notification to a specific user"""
+    user = User.query.get_or_404(user_id)
+    results = {}
+
+    # Test withdrawal approved notification
+    try:
+        notification = NotificationTemplates.withdrawal_approved(500)
+        result = send_push_notification(
+            user_id=user.id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+        results["withdrawal_approved"] = {"sent": result, "error": None}
+    except Exception as e:
+        results["withdrawal_approved"] = {"sent": False, "error": str(e)}
+
+    # Test withdrawal rejected notification
+    try:
+        notification = NotificationTemplates.withdrawal_rejected()
+        result = send_push_notification(
+            user_id=user.id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+        results["withdrawal_rejected"] = {"sent": result, "error": None}
+    except Exception as e:
+        results["withdrawal_rejected"] = {"sent": False, "error": str(e)}
+
+    return jsonify({
+        "user_id": user.id,
+        "name": user.name,
+        "has_fcm_token": bool(user.fcm_token),
+        "results": results
+    })
+
+
 @bp.route('/debug/user-info/<email>')
 @admin_required
 def debug_user_info(email):
@@ -1764,16 +1805,17 @@ def approve_withdrawal(request_id):
         withdrawal.admin_notes = request.form.get('admin_notes', '')
         
         db.session.commit()
-        
+
         # Send push notification to user
         notification = NotificationTemplates.withdrawal_approved(withdrawal.amount)
-        send_push_notification(
+        notif_result = send_push_notification(
             user_id=withdrawal.user_id,
             title=notification["title"],
             body=notification["body"],
             data=notification.get("data")
         )
-        
+        print(f"[WITHDRAWAL APPROVE] User:{withdrawal.user_id} | Amount:{withdrawal.amount} | Notification sent:{notif_result}")
+
         flash(f'تم الموافقة على طلب السحب وخصم {withdrawal.amount:,.0f} جنيه من محفظة {user.name}', 'success')
         return redirect(url_for('admin.withdrawal_requests'))
     
@@ -1809,13 +1851,14 @@ def reject_withdrawal(request_id):
     
     # Send push notification to user
     notification = NotificationTemplates.withdrawal_rejected()
-    send_push_notification(
+    notif_result = send_push_notification(
         user_id=withdrawal.user_id,
         title=notification["title"],
         body=notification["body"],
         data=notification.get("data")
     )
-    
+    print(f"[WITHDRAWAL REJECT] User:{withdrawal.user_id} | Notification sent:{notif_result}")
+
     flash(f'تم رفض طلب السحب', 'success')
     return redirect(url_for('admin.withdrawal_requests'))
 
