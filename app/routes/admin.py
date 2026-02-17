@@ -749,18 +749,43 @@ def debug_user_info(email):
     # Get investment requests
     inv_requests = InvestmentRequest.query.filter_by(user_id=user.id).all()
 
-    # Try sending a test notification
-    test_result = None
+    # Try sending a test notification with detailed error reporting
+    test_result = {"sent": None, "error": None, "firebase_init": None, "response": None}
     if user.fcm_token:
         try:
-            test_result = send_push_notification(
-                user_id=user.id,
-                title="اختبار الإشعارات",
-                body="هذا إشعار تجريبي من لوحة التحكم",
-                data={"type": "test", "screen": "wallet"}
-            )
+            import os
+            from app.utils.notification_service import initialize_firebase
+
+            # Step 1: Check Firebase config
+            service_account_path = os.environ.get('FIREBASE_SERVICE_ACCOUNT') or \
+                                   current_app.config.get('FIREBASE_SERVICE_ACCOUNT')
+            test_result["firebase_config_exists"] = bool(service_account_path)
+            if service_account_path:
+                test_result["firebase_config_is_file"] = os.path.exists(service_account_path)
+                test_result["firebase_config_path"] = service_account_path[:60] + "..." if len(service_account_path) > 60 else service_account_path
+
+            # Step 2: Try init
+            init_ok = initialize_firebase()
+            test_result["firebase_init"] = init_ok
+
+            if init_ok:
+                # Step 3: Try sending directly
+                from firebase_admin import messaging
+
+                message = messaging.Message(
+                    notification=messaging.Notification(
+                        title="اختبار الإشعارات",
+                        body="هذا إشعار تجريبي من لوحة التحكم",
+                    ),
+                    data={"type": "test", "screen": "wallet"},
+                    token=user.fcm_token,
+                )
+                response = messaging.send(message)
+                test_result["sent"] = True
+                test_result["response"] = str(response)
         except Exception as e:
-            test_result = f"Error: {str(e)}"
+            test_result["sent"] = False
+            test_result["error"] = f"{type(e).__name__}: {str(e)}"
 
     return jsonify({
         "user": {
@@ -776,7 +801,7 @@ def debug_user_info(email):
             "has_token": bool(user.fcm_token),
             "token_preview": user.fcm_token[:80] + "..." if user.fcm_token else None,
             "token_length": len(user.fcm_token) if user.fcm_token else 0,
-            "test_notification_sent": test_result,
+            "test_notification": test_result,
         },
         "apartment_shares": [
             {
