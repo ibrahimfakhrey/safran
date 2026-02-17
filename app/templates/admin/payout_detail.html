@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الأرباح - {{ asset.title }}{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <a href="{{ url_for('admin.payouts') }}" style="color: var(--gold); text-decoration: none; margin-bottom: 0.5rem; display: inline-block;">
+                    <i class="fas fa-arrow-right"></i> العودة لتوزيع الأرباح
+                </a>
+                <h1 class="text-gold" style="margin: 0;">
+                    <i class="fas fa-{{ 'building' if asset_type == 'apartment' else 'car' }}"></i>
+                    {{ asset.title }}
+                </h1>
+                <p class="text-muted" style="margin: 0.5rem 0 0;">{{ asset.location }}</p>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('admin.distribute_payout', apartment_id=asset.id) if asset_type == 'apartment' else url_for('admin.distribute_car_payout', car_id=asset.id) }}"
+                  onsubmit="return confirm('هل أنت متأكد من توزيع الأرباح الآن؟')">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-money-bill-wave"></i> توزيع الأرباح الآن
+                </button>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-2" style="gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card" style="text-align: center;">
+                <div class="grid grid-2" style="gap: 1rem;">
+                    <div>
+                        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">الإيجار الشهري</p>
+                        <h2 class="text-success" style="margin: 0.5rem 0 0;">{{ "{:,.0f}".format(asset.monthly_rent) }} جنيه</h2>
+                    </div>
+                    <div>
+                        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">العائد لكل حصة</p>
+                        <h2 class="text-gold" style="margin: 0.5rem 0 0;">{{ "{:,.0f}".format(rent_per_share) }} جنيه</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <div class="grid grid-2" style="gap: 1rem;">
+                    <div>
+                        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">إجمالي الحصص</p>
+                        <h2 style="margin: 0.5rem 0 0;">{{ asset.total_shares }}</h2>
+                    </div>
+                    <div>
+                        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">الحصص المباعة</p>
+                        <h2 class="text-gold" style="margin: 0.5rem 0 0;">{{ asset.shares_sold }}</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">عدد المستثمرين</p>
+                <h2 style="margin: 0.5rem 0 0;">{{ investors|length }}</h2>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">آخر توزيع</p>
+                <h2 style="margin: 0.5rem 0 0; font-size: 1.3rem;">
+                    {% if asset.last_payout_date %}
+                        {{ asset.last_payout_date.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                        <span class="text-muted">لم يتم التوزيع بعد</span>
+                    {% endif %}
+                </h2>
+            </div>
+        </div>
+
+        <!-- Investors Table -->
+        <h2 class="text-gold" style="margin-bottom: 1rem;">
+            <i class="fas fa-users"></i> المستثمرون
+        </h2>
+
+        {% if investors %}
+            <div class="table-container" style="margin-bottom: 2rem;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>المستثمر</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الهاتف</th>
+                            <th>عدد الحصص</th>
+                            <th>المبلغ لكل توزيع</th>
+                            <th>إجمالي المستلم</th>
+                            <th>آخر توزيع</th>
+                            <th>رصيد المحفظة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in investors %}
+                        <tr>
+                            <td>
+                                <strong>{{ inv.user.name }}</strong>
+                            </td>
+                            <td>
+                                <a href="mailto:{{ inv.user.email }}" style="color: var(--gold);">{{ inv.user.email }}</a>
+                            </td>
+                            <td>{{ inv.user.phone or '-' }}</td>
+                            <td>
+                                <span class="badge badge-primary">{{ inv.share_count }}</span>
+                            </td>
+                            <td class="text-success">{{ "{:,.0f}".format(inv.amount_per_payout) }} جنيه</td>
+                            <td class="text-gold">{{ "{:,.0f}".format(inv.total_received) }} جنيه</td>
+                            <td>
+                                {% if inv.last_payout_date %}
+                                    {{ inv.last_payout_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "{:,.0f}".format(inv.user.wallet_balance) }} جنيه</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid var(--gold);">
+                            <td colspan="3"><strong>الإجمالي</strong></td>
+                            <td><strong>{{ investors|sum(attribute='share_count') }}</strong></td>
+                            <td class="text-success"><strong>{{ "{:,.0f}".format(investors|sum(attribute='amount_per_payout')) }} جنيه</strong></td>
+                            <td class="text-gold"><strong>{{ "{:,.0f}".format(investors|sum(attribute='total_received')) }} جنيه</strong></td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <div class="card text-center" style="padding: 2rem; margin-bottom: 2rem;">
+                <p class="text-muted">لا يوجد مستثمرون في هذا الأصل حالياً</p>
+            </div>
+        {% endif %}
+
+        <!-- Payout History -->
+        <h2 class="text-gold" style="margin-bottom: 1rem;">
+            <i class="fas fa-history"></i> سجل التوزيعات (آخر 50)
+        </h2>
+
+        {% if payout_history %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>المستثمر</th>
+                            <th>المبلغ</th>
+                            <th>النوع</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in payout_history %}
+                        <tr>
+                            <td>{{ tx.id }}</td>
+                            <td>{{ tx.user.name }}</td>
+                            <td class="text-success">{{ "{:,.0f}".format(tx.amount) }} جنيه</td>
+                            <td>{{ tx.type_arabic }}</td>
+                            <td>{{ tx.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="card text-center" style="padding: 2rem;">
+                <p class="text-muted">لا توجد توزيعات سابقة</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

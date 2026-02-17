@@ -550,6 +550,112 @@ def payouts():
                          eligible_cars=eligible_cars)
 
 
+@bp.route('/payouts/apartment/<int:apartment_id>')
+@admin_required
+def payout_apartment_detail(apartment_id):
+    """Detail page showing all investors and payout history for an apartment"""
+    apartment = Apartment.query.get_or_404(apartment_id)
+
+    # Get all unique investors with their share counts
+    investor_data = db.session.query(
+        User,
+        func.count(Share.id).label('share_count')
+    ).join(Share, Share.user_id == User.id)\
+     .filter(Share.apartment_id == apartment_id)\
+     .group_by(User.id)\
+     .all()
+
+    rent_per_share = apartment.monthly_rent / apartment.total_shares if apartment.total_shares > 0 else 0
+
+    investors = []
+    for user, share_count in investor_data:
+        # Get total rental_income transactions for this user
+        total_received = db.session.query(func.sum(Transaction.amount))\
+            .filter(
+                Transaction.user_id == user.id,
+                Transaction.transaction_type == 'rental_income'
+            ).scalar() or 0
+
+        # Get last payout transaction
+        last_payout = Transaction.query.filter(
+            Transaction.user_id == user.id,
+            Transaction.transaction_type == 'rental_income'
+        ).order_by(Transaction.date.desc()).first()
+
+        investors.append({
+            'user': user,
+            'share_count': share_count,
+            'amount_per_payout': rent_per_share * share_count,
+            'total_received': total_received,
+            'last_payout_date': last_payout.date if last_payout else None
+        })
+
+    # Get payout history (all rental_income transactions for investors in this apartment)
+    investor_ids = [inv['user'].id for inv in investors]
+    payout_history = Transaction.query.filter(
+        Transaction.user_id.in_(investor_ids),
+        Transaction.transaction_type == 'rental_income'
+    ).order_by(Transaction.date.desc()).limit(50).all()
+
+    return render_template('admin/payout_detail.html',
+                         asset=apartment,
+                         asset_type='apartment',
+                         investors=investors,
+                         rent_per_share=rent_per_share,
+                         payout_history=payout_history)
+
+
+@bp.route('/payouts/car/<int:car_id>')
+@admin_required
+def payout_car_detail(car_id):
+    """Detail page showing all investors and payout history for a car"""
+    car = Car.query.get_or_404(car_id)
+
+    investor_data = db.session.query(
+        User,
+        func.count(CarShare.id).label('share_count')
+    ).join(CarShare, CarShare.user_id == User.id)\
+     .filter(CarShare.car_id == car_id)\
+     .group_by(User.id)\
+     .all()
+
+    rent_per_share = car.monthly_rent / car.total_shares if car.total_shares > 0 else 0
+
+    investors = []
+    for user, share_count in investor_data:
+        total_received = db.session.query(func.sum(Transaction.amount))\
+            .filter(
+                Transaction.user_id == user.id,
+                Transaction.transaction_type == 'rental_income'
+            ).scalar() or 0
+
+        last_payout = Transaction.query.filter(
+            Transaction.user_id == user.id,
+            Transaction.transaction_type == 'rental_income'
+        ).order_by(Transaction.date.desc()).first()
+
+        investors.append({
+            'user': user,
+            'share_count': share_count,
+            'amount_per_payout': rent_per_share * share_count,
+            'total_received': total_received,
+            'last_payout_date': last_payout.date if last_payout else None
+        })
+
+    investor_ids = [inv['user'].id for inv in investors]
+    payout_history = Transaction.query.filter(
+        Transaction.user_id.in_(investor_ids),
+        Transaction.transaction_type == 'rental_income'
+    ).order_by(Transaction.date.desc()).limit(50).all()
+
+    return render_template('admin/payout_detail.html',
+                         asset=car,
+                         asset_type='car',
+                         investors=investors,
+                         rent_per_share=rent_per_share,
+                         payout_history=payout_history)
+
+
 @bp.route('/payouts/distribute/<int:apartment_id>', methods=['POST'])
 @admin_required
 def distribute_payout(apartment_id):

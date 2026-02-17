@@ -46,7 +46,9 @@
                     {% for apartment in closed_apartments %}
                     <tr>
                         <td>
-                            <strong>{{ apartment.title }}</strong><br>
+                            <a href="{{ url_for('admin.payout_apartment_detail', apartment_id=apartment.id) }}" style="color: var(--gold); text-decoration: none;">
+                                <strong>{{ apartment.title }}</strong>
+                            </a><br>
                             <small class="text-muted">{{ apartment.location }}</small>
                         </td>
                         <td class="text-success">{{ "{:,.0f}".format(apartment.monthly_rent) }} جنيه</td>
@@ -58,8 +60,11 @@
                                 <span class="text-muted">لم يتم التوزيع بعد</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <form method="POST" 
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('admin.payout_apartment_detail', apartment_id=apartment.id) }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-eye"></i> تفاصيل
+                            </a>
+                            <form method="POST"
                                   action="{{ url_for('admin.distribute_payout', apartment_id=apartment.id) }}"
                                   style="display: inline;">
                                 <button type="submit" class="btn btn-sm btn-primary">
@@ -91,7 +96,9 @@
                     {% for apartment in eligible_apartments %}
                     <tr>
                         <td>
-                            <strong>{{ apartment.title }}</strong><br>
+                            <a href="{{ url_for('admin.payout_apartment_detail', apartment_id=apartment.id) }}" style="color: var(--gold); text-decoration: none;">
+                                <strong>{{ apartment.title }}</strong>
+                            </a><br>
                             <small class="text-muted">{{ apartment.location }}</small>
                         </td>
                         <td class="text-success">{{ "{:,.0f}".format(apartment.monthly_rent) }} جنيه</td>
@@ -103,8 +110,11 @@
                                 <span class="text-muted">لم يتم التوزيع بعد</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <form method="POST" 
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('admin.payout_apartment_detail', apartment_id=apartment.id) }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-eye"></i> تفاصيل
+                            </a>
+                            <form method="POST"
                                   action="{{ url_for('admin.distribute_payout', apartment_id=apartment.id) }}"
                                   style="display: inline;">
                                 <button type="submit" class="btn btn-sm btn-primary">
@@ -140,7 +150,9 @@
                     {% for car in closed_cars %}
                     <tr>
                         <td>
-                            <strong>{{ car.title }}</strong><br>
+                            <a href="{{ url_for('admin.payout_car_detail', car_id=car.id) }}" style="color: var(--gold); text-decoration: none;">
+                                <strong>{{ car.title }}</strong>
+                            </a><br>
                             <small class="text-muted">{{ car.location }}</small>
                         </td>
                         <td class="text-success">{{ "{:,.0f}".format(car.monthly_rent) }} جنيه</td>
@@ -152,8 +164,11 @@
                                 <span class="text-muted">لم يتم التوزيع بعد</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <form method="POST" 
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('admin.payout_car_detail', car_id=car.id) }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-eye"></i> تفاصيل
+                            </a>
+                            <form method="POST"
                                   action="{{ url_for('admin.distribute_car_payout', car_id=car.id) }}"
                                   style="display: inline;">
                                 <button type="submit" class="btn btn-sm btn-primary">
@@ -185,7 +200,9 @@
                     {% for car in eligible_cars %}
                     <tr>
                         <td>
-                            <strong>{{ car.title }}</strong><br>
+                            <a href="{{ url_for('admin.payout_car_detail', car_id=car.id) }}" style="color: var(--gold); text-decoration: none;">
+                                <strong>{{ car.title }}</strong>
+                            </a><br>
                             <small class="text-muted">{{ car.location }}</small>
                         </td>
                         <td class="text-success">{{ "{:,.0f}".format(car.monthly_rent) }} جنيه</td>
@@ -197,8 +214,11 @@
                                 <span class="text-muted">لم يتم التوزيع بعد</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <form method="POST" 
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('admin.payout_car_detail', car_id=car.id) }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-eye"></i> تفاصيل
+                            </a>
+                            <form method="POST"
                                   action="{{ url_for('admin.distribute_car_payout', car_id=car.id) }}"
                                   style="display: inline;">
                                 <button type="submit" class="btn btn-sm btn-primary">
