@@ -656,6 +656,80 @@ def payout_car_detail(car_id):
                          payout_history=payout_history)
 
 
+@bp.route('/debug/fix-approved-requests')
+@admin_required
+def fix_approved_requests():
+    """Debug: Create missing shares for all approved requests that don't have shares yet"""
+    fixed = []
+    skipped = []
+
+    for inv_request in InvestmentRequest.query.filter_by(status='approved').all():
+        # Check if shares already exist for this user+apartment combo
+        existing = Share.query.filter_by(
+            user_id=inv_request.user_id,
+            apartment_id=inv_request.apartment_id
+        ).count()
+
+        if existing >= inv_request.shares_requested:
+            skipped.append(f"Request #{inv_request.id}: {inv_request.user.name} already has {existing} shares in {inv_request.apartment.title}")
+            continue
+
+        apartment = inv_request.apartment
+        shares_to_create = inv_request.shares_requested - existing
+
+        for _ in range(shares_to_create):
+            share = Share(
+                user_id=inv_request.user_id,
+                apartment_id=inv_request.apartment_id,
+                share_price=apartment.share_price
+            )
+            db.session.add(share)
+
+        apartment.shares_available -= shares_to_create
+        if apartment.shares_available <= 0:
+            apartment.is_closed = True
+
+        fixed.append(f"Request #{inv_request.id}: Created {shares_to_create} shares for {inv_request.user.name} in {apartment.title}")
+
+    # Same for car investment requests
+    for inv_request in CarInvestmentRequest.query.filter_by(status='approved').all():
+        existing = CarShare.query.filter_by(
+            user_id=inv_request.user_id,
+            car_id=inv_request.car_id
+        ).count()
+
+        if existing >= inv_request.shares_requested:
+            skipped.append(f"Car Request #{inv_request.id}: {inv_request.user.name} already has {existing} shares in {inv_request.car.title}")
+            continue
+
+        car = inv_request.car
+        shares_to_create = inv_request.shares_requested - existing
+
+        for _ in range(shares_to_create):
+            share = CarShare(
+                user_id=inv_request.user_id,
+                car_id=inv_request.car_id,
+                share_price=car.share_price
+            )
+            db.session.add(share)
+
+        car.shares_available -= shares_to_create
+        if car.shares_available <= 0:
+            car.is_closed = True
+
+        fixed.append(f"Car Request #{inv_request.id}: Created {shares_to_create} shares for {inv_request.user.name} in {car.title}")
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "fixed": fixed,
+        "skipped": skipped,
+        "total_fixed": len(fixed),
+        "total_skipped": len(skipped)
+    })
+
+
 @bp.route('/payouts/distribute/<int:apartment_id>', methods=['POST'])
 @admin_required
 def distribute_payout(apartment_id):
