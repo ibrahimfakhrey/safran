@@ -92,6 +92,7 @@ class ProductionConfig(Config):
     DEBUG = False
     SCHEDULER_ENABLED = False  # Disable scheduler in production (PythonAnywhere doesn't support it)
     # In production, ensure SECRET_KEY is set via environment variable
+    FIREBASE_SERVICE_ACCOUNT = '/home/amsfiles/ipi/ipi-real-estate-c0afd-firebase-adminsdk-fbsvc-151d8cb4f2.json'
     
 
 class TestingConfig(Config):
