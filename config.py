@@ -77,7 +77,8 @@ class Config:
     # Firebase Admin SDK (NEW - Legacy Server Key is deprecated)
     # This should be the path to your service account JSON file
     # Or the JSON content as a string (for PythonAnywhere/Heroku)
-    FIREBASE_SERVICE_ACCOUNT = os.environ.get('FIREBASE_SERVICE_ACCOUNT') or 'firebase-service-account.json'
+    FIREBASE_SERVICE_ACCOUNT = os.environ.get('FIREBASE_SERVICE_ACCOUNT') or \
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'firebase-service-account.json')
 
 class DevelopmentConfig(Config):
     """Development environment configuration"""
